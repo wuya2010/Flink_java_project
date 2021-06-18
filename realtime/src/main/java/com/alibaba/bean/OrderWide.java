@@ -57,4 +57,41 @@ public class OrderWide {
     String spu_name;
     String tm_name;
     String category3_name;
+
+    //构造器
+    public OrderWide(OrderInfo orderInfo, OrderDetail orderDetail){
+        mergeOrderInfo(orderInfo);
+        mergeOrderDetail(orderDetail);
+    }
+
+    public void mergeOrderInfo(OrderInfo orderInfo){
+        if (orderInfo != null) {
+            this.order_id = orderInfo.id;
+            this.order_status = orderInfo.order_status;
+            this.create_time = orderInfo.create_time;
+            this.create_date = orderInfo.create_date;
+            this.activity_reduce_amount = orderInfo.activity_reduce_amount;
+            this.coupon_reduce_amount = orderInfo.coupon_reduce_amount;
+            this.original_total_amount = orderInfo.original_total_amount;
+            this.feight_fee = orderInfo.feight_fee;
+            this.total_amount =  orderInfo.total_amount;
+            this.province_id = orderInfo.province_id;
+            this.user_id = orderInfo.user_id;
+        }
+    }
+
+    public void mergeOrderDetail(OrderDetail orderDetail){
+        if (orderDetail != null) {
+            this.detail_id = orderDetail.id;
+            this.sku_id = orderDetail.sku_id;
+            this.sku_name = orderDetail.sku_name;
+            this.order_price = orderDetail.order_price;
+            this.sku_num = orderDetail.sku_num;
+            this.split_activity_amount=orderDetail.split_activity_amount;
+            this.split_coupon_amount=orderDetail.split_coupon_amount;
+            this.split_total_amount=orderDetail.split_total_amount;
+        }
+    }
+
+
 }

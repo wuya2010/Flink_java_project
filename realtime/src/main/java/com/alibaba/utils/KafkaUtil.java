@@ -23,10 +23,10 @@ public class KafkaUtil {
     private static String DEFAULT_TOPIC="test_default";
 
     //定义flinkConsumer
-    public static FlinkKafkaConsumer getKafkaSource(String topic, String groupIdgetSideOutput){
+    public static FlinkKafkaConsumer getKafkaSource(String topic, String groupId){
         Properties properties = new Properties();
         //获取ConsumerConfig属性
-        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG,groupIdgetSideOutput);
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG,groupId);
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,KAFKA_SERVER);
         //返回值
 //        return new FlinkKafkaConsumer<String>(topic,new SimpleStringSchema(),properties)
