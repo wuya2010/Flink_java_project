@@ -11,8 +11,12 @@ import lombok.Data;
  * @version 1.0
  * @date 2021/6/9 14:50
  */
+
 @Data //自动载入 get/set 方法 , 需要在 idea 安装插件，否则无法生成
 public class TableProcess {
+
+    //不同的数据流，写入不同的数据库
+
     //实现动态分流
     public static final String SINK_TYEP_HBASE = "hbase";
     public static final String SINK_TYPE_KAFKA = "kafka";

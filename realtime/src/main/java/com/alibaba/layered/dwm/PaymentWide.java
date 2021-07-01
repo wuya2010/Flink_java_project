@@ -53,7 +53,6 @@ public class PaymentWide {
         SingleOutputStreamOperator<PaymentInfo> paymentInfoStructDs = paymentDs.map(
                 new RichMapFunction<String, PaymentInfo>() {
 
-
                     @Override
                     public void open(Configuration parameters) throws Exception {
                     }

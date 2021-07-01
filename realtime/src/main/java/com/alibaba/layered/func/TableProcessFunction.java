@@ -65,7 +65,7 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
     }
 
     /**
-     * 对每一条数据的处理
+     * 对每一条数据的处理, flink 对接topic
      * @param jsonObj
      * @param ctx
      * @param out

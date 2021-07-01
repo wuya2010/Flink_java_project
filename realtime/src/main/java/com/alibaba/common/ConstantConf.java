@@ -12,7 +12,7 @@ package com.alibaba.common;
 public class ConstantConf {
 
     public static final String HBASE_SCHEMA =  "flinkReal";
-            public static final String PHOENIX_SERVER = "jdbc:phoenix:hadoop202,hadoop203,hadoop204:2181";
-                    public static final String CLICKHOUSE_URL = "jdbc:clickhouse://hadoop202:8123/default";
+    public static final String PHOENIX_SERVER = "jdbc:phoenix:hadoop202,hadoop203,hadoop204:2181";
+    public static final String CLICKHOUSE_URL = "jdbc:clickhouse://hadoop202:8123/default";
 
 }

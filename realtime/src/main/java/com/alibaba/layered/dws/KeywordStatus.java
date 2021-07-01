@@ -1,5 +1,6 @@
 package com.alibaba.layered.dws;
 
+import com.alibaba.layered.func.KeywordUtil;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.annotation.DataTypeHint;
 import org.apache.flink.table.annotation.FunctionHint;
@@ -39,24 +40,21 @@ public class KeywordStatus {
     }
 
     /**
-     * 通过注册指定返回值类型，flink 1.11 版本开始支持
+     * 通过注册指定返回值类型，flink 1.11 版本开始支持， 返回值
      */
     @FunctionHint(output = @DataTypeHint("ROW<word STRING>"))
+
     class KeyWordUdf extends TableFunction<Row> {
         public void eval(String value){
-            KeywordUtil.
-        }
-
-        //分词    将字符串进行分词，将分词之后的结果放到一个集合中返回
-        public  List<String> analyze(String text){
-            List<String> list = new ArrayList<String>;
-            StringReader str = new StringReader(text);
-
-            IKSegmenter ikSegmenter = new IKSegmenter(str, true);
-
-
-
-            return null;
+            List<String> keywordList = KeywordUtil.analyze(value); //分词
+            // 将关键词写到 row
+            for (String s : keywordList) {
+                //Create a new row instance.
+                Row row = new Row(1);
+                //在row的指定位置，设置值：  Sets the field's content at the specified position.
+                row.setField(0,s);
+                collect(row); // 返回值？
+            }
         }
     }
 }

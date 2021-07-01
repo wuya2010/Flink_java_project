@@ -30,7 +30,7 @@ public class KeywordStats4Product {
         String groupId = "kwyword_stats_app";
         String productStatsSourceTopic = "dws_product_stats";
 
-        //创建表
+        //创建动态表
         tableEnv.executeSql(
                 "CREATE TABLE product_status (spu_name STRING), click_ct BIGINT, cart_ct BIGINT ," +
                         "order_ct BIGINT ,stt STRING,edt STRING ) WITH(" + KafkaUtil.getKafkaDDL(productStatsSourceTopic,groupId) + ")"

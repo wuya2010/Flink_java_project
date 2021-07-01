@@ -14,6 +14,7 @@ import java.math.BigDecimal;
  * @version 1.0
  * @date 2021/6/11 10:07
  */
+
 @Data
 @AllArgsConstructor
 public class OrderWide {
@@ -64,6 +65,7 @@ public class OrderWide {
         mergeOrderDetail(orderDetail);
     }
 
+    // 构建两个流的合
     public void mergeOrderInfo(OrderInfo orderInfo){
         if (orderInfo != null) {
             this.order_id = orderInfo.id;
@@ -80,6 +82,7 @@ public class OrderWide {
         }
     }
 
+    //构建2个流的合
     public void mergeOrderDetail(OrderDetail orderDetail){
         if (orderDetail != null) {
             this.detail_id = orderDetail.id;

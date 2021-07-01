@@ -144,22 +144,23 @@ public class OrderWideData {
             TimeUnit timeUnit,
             int capacity
          */
-        AsyncDataStream.unorderedWait(
-                orderWideDs,
-                //关联的表名
-                new DimAsyncFunction<OrderWide>("DIM_USER_INFO"){
-
-                    @Override
-                    public String getKey(OrderWide obj) {
-                        return obj.getUser_id()
-                    }
-
-                    @Override
-                    public void join(OrderWide obj, JSONObject dimInfoJson) throws Exception {
-
-                    }
-                }
-        )
+//        AsyncDataStream.unorderedWait(
+//                orderWideDs,
+//                //关联的表名
+//                new DimAsyncFunction<OrderWide>("DIM_USER_INFO"){
+//
+//                    @Override
+//                    public String getKey(OrderWide obj) {
+////                        return obj.getUser_id()
+//                        return "";
+//                    }
+//
+//                    @Override
+//                    public void join(OrderWide obj, JSONObject dimInfoJson) throws Exception {
+////                        return null;
+//                    }
+//                }
+//        )
 
 
 

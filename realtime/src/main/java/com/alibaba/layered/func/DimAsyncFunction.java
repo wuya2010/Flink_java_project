@@ -21,6 +21,8 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author kylin
  * @version 1.0
  * @date 2021/6/18 11:47
+ * 
+ * 获取全量数据
  */
 //实现部分抽象方法
 public abstract  class DimAsyncFunction<T> extends RichAsyncFunction<T,T> implements DimJoinFunction<T>{
@@ -72,7 +74,7 @@ public abstract  class DimAsyncFunction<T> extends RichAsyncFunction<T,T> implem
                             long end_timeStmap = System.currentTimeMillis();
                             System.out.println("join time is "+ (end_timeStmap - start_timeStmap));
 
-                            resultFuture.complete(Arrays.asList(input));
+//                            resultFuture.complete(Arrays.asList(input));
 
                         } catch (Exception e) {
                             e.printStackTrace();

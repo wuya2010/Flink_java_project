@@ -17,8 +17,8 @@ import java.math.BigDecimal;
  */
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor  // 带参的构造器
+@NoArgsConstructor //空参
 public class PaymentWide {
 
     Long payment_id;
