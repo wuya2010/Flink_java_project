@@ -3,8 +3,12 @@ package com.alibaba.bean;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+
+//参考导入： import org.apache.commons.beanutils.BeanUtils;
+import static org.apache.commons.beanutils.BeanUtils.copyProperties;
+
 
 /**
  * <p>Description: 添加描述</p>
@@ -59,5 +63,37 @@ public class PaymentWide {
     String spu_name;
     String tm_name;
     String category3_name;
+
+    public PaymentWide(PaymentInfo paymentInfo, OrderWide orderWide){
+        mergeOrderWide(orderWide);
+        mergePaymentInfo(paymentInfo);
+    }
+
+    public void  mergePaymentInfo(PaymentInfo paymentInfo)  {
+        if (paymentInfo != null) {
+            try {
+                copyProperties(this,paymentInfo);
+                payment_create_time=paymentInfo.create_time;
+                payment_id = paymentInfo.id;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void  mergeOrderWide(OrderWide orderWide)  {
+        if (orderWide != null) {
+            try {
+                copyProperties(this,orderWide);
+                order_create_time=orderWide.create_time;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

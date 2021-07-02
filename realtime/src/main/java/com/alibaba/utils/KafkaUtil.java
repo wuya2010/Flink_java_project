@@ -19,8 +19,9 @@ import java.util.Properties;
  * @date 2021/6/8 15:00
  */
 public class KafkaUtil {
+
     private static String KAFKA_SERVER = "10.50.32.74:9092,10.50.219.19:9092,10.50.163.78:9092";
-    private static String DEFAULT_TOPIC="test_default";
+    private static String DEFAULT_TOPIC= "test_default";
 
     //定义flinkConsumer
     public static FlinkKafkaConsumer getKafkaSource(String topic, String groupId){

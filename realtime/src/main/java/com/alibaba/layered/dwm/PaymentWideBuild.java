@@ -2,13 +2,13 @@ package com.alibaba.layered.dwm;
 
 import com.alibaba.bean.OrderWide;
 import com.alibaba.bean.PaymentInfo;
+import com.alibaba.bean.PaymentWide;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.utils.DateTimeUtil;
 import com.alibaba.utils.KafkaUtil;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -29,7 +29,8 @@ import java.time.Duration;
  * @version 1.0
  * @date 2021/6/10 11:33
  */
-public class PaymentWide {
+public class PaymentWideBuild {
+
     public static void main(String[] args) throws Exception {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -51,33 +52,23 @@ public class PaymentWide {
 
         //转换结构, 改变 create_time 字段结构，比较复杂， 用map操作
         SingleOutputStreamOperator<PaymentInfo> paymentInfoStructDs = paymentDs.map(
-                new RichMapFunction<String, PaymentInfo>() {
-
+                new MapFunction<String, PaymentInfo>() {
                     @Override
-                    public void open(Configuration parameters) throws Exception {
-                    }
-
-                    //返回一个对象
-                    @Override
-                    public PaymentInfo map(String s) throws Exception {
-                        return null;
+                    public PaymentInfo map(String jsonStr) throws Exception {
+                        PaymentInfo  jsonObject = JSON.parseObject(jsonStr,PaymentInfo.class);
+                        return jsonObject;
                     }
                 }
         );
 
 
         SingleOutputStreamOperator<OrderWide> orderWideStructDs = orderWideDs.map(
-                new RichMapFunction<String, OrderWide>() {
-
-
+                //返回值类型
+                new MapFunction<String, OrderWide>() {
                     @Override
-                    public void open(Configuration parameters) throws Exception {
-                    }
-
-                    //返回一个对象
-                    @Override
-                    public OrderWide map(String s) throws Exception {
-                        return null;
+                    public OrderWide map(String jsonStr) throws Exception {
+                        OrderWide  jsonObject = JSON.parseObject(jsonStr,OrderWide.class);
+                        return jsonObject;
                     }
                 }
         );
@@ -111,18 +102,18 @@ public class PaymentWide {
 
 
         //根据id进行分组
-        KeyedStream<PaymentInfo, Long> paymentInfoKeyedDS = paymentInfoWithTsDs.keyBy(PaymentInfo::getId);
+        KeyedStream<PaymentInfo, Long> paymentInfoKeyedDS = paymentInfoWithTsDs.keyBy(PaymentInfo::getId); //如何获取对象
         KeyedStream<OrderWide, Long> orderWideKeyedDS = orderWideWithTsDs.keyBy(OrderWide::getOrder_id);
 
 
-        //流的聚合
+        //流的聚合, 实现聚合
         SingleOutputStreamOperator<PaymentWide> paymentWideDs = paymentInfoKeyedDS.intervalJoin(orderWideKeyedDS)
                 .between(Time.seconds(-1800), Time.seconds(0)) //window Time
                 .process(
                         new ProcessJoinFunction<PaymentInfo, OrderWide, PaymentWide>() {
                             @Override
-                            public void processElement(PaymentInfo left, OrderWide right, Context ctx, Collector<PaymentWide> out) throws Exception {
-
+                            public void processElement(PaymentInfo payment, OrderWide orderwide, Context ctx, Collector<PaymentWide> out) throws Exception {
+                                    out.collect(new PaymentWide(payment,orderwide));
                             }
                         }
                 );

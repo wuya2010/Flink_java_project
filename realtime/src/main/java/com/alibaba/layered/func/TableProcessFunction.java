@@ -17,6 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
+
 /**
  * <p>Description: 添加描述</p>
  * <p>Copyright: Copyright (c) 2020</p>
@@ -50,11 +51,12 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
         Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
         conn = DriverManager.getConnection(ConstantConf.PHOENIX_SERVER);
 
-        //初始表信息
+        //自定义，初始表信息
         refreshMeta();
 
-        //定时任务，查找mysql数据，获取map 的变化
-        Timer timer = new Timer();
+        //定时任务，查找mysql数据，获取map 的变化  ==> ScheduledExecutorServic 的使用
+        // 模拟一个定时timer
+        Timer timer = new Timer(); // java.util._
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -74,10 +76,40 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
     @Override
     public void processElement(JSONObject jsonObj, Context ctx, Collector<JSONObject> out) throws Exception {
             /*  1.从 jsonObj 中获取 table, type 信息，索引map中对应的 processTable 中的 sink_table, sinkColumn 字段
-                2.需要对保留字段进行进行过滤，判断sinkColumn 中的是否有保留字段, 包含在样例类中的字段信息保留
+                2. 需要对保留字段进行进行过滤，判断sinkColumn 中的是否有保留字段, 包含在样例类中的字段信息保留
                 3. 根据数据类型，分别写入 habse / kafka
              */
+        // key , map
+        String table = jsonObj.getString("table");
+        String type = jsonObj.getString("type");
 
+        //bootstrap-insert,修复对应的 字段的值
+        if("bootstrap-insert".equals(type)){
+            jsonObj.put("type","isnert");
+        }
+
+        //refresh 中已经将表信息放入 objMap
+        if(objMap.size()  > 0 && objMap != null){
+            //获取key
+            String key = table + ":" +type;
+            TableProcess tableProcess = objMap.get(key); // map类型：  Map<String, TableProcess>
+            if(tableProcess != null){
+                jsonObj.put("sink_table",tableProcess.getSinkTable());
+                String sinkColumns = tableProcess.getSinkColumns();
+                if(sinkColumns != null && sinkColumns.length() > 0 ){
+                    filterColumn(jsonObj.getJSONObject("data"), sinkColumns);
+                }
+            }else{
+                System.out.println("has not this data in datasource");
+            }
+
+            //根据不同的类型写入不同的位置
+            if(tableProcess != null && tableProcess.getSinkType().equals(TableProcess.SINK_TYEP_HBASE)){
+                ctx.output(outputTag,jsonObj);
+            }else if(tableProcess != null && tableProcess.getSinkType().equals(TableProcess.SINK_TYPE_KAFKA)){
+                out.collect(jsonObj);
+            }
+        }
     }
 
 
@@ -85,10 +117,11 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
 
 
     /**
-     * 定义辅助方法: 更新数据
+     * 定义辅助方法: 更新数据， 将数据放入 objMap
      */
     private void refreshMeta() {
-        List<TableProcess> resultProcess = MySqlUtil.queryList("", TableProcess.class, true);
+        System.out.println("获取配置表信息"); //配置表 table_process
+        List<TableProcess> resultProcess = MySqlUtil.queryList("select * from table_process", TableProcess.class, true);
         //遍历list的结果
         for (TableProcess process : resultProcess) {
             String soureTable = process.getSoureTable();
@@ -104,7 +137,7 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
             //建表扩展语句
             String sinkExtend = process.getSinkExtend();
 
-            //拼接 key
+            //拼接 key : 表名 + 类型
             String key = soureTable + ":" + operateType;
 
           /*
@@ -115,7 +148,7 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
 
             if (TableProcess.SINK_TYEP_HBASE.equals(sinkType) && "insert".equals(operateType)) {
                 //添加元素并返回，如果不包含返回 true
-                boolean notExists = existsTablesSet.add(soureTable);
+                boolean notExists = existsTablesSet.add(soureTable); //判断是否已经处理过
                 if (notExists) {
                     checkTable(sinkTable, sinkColumns, sinkPk, sinkExtend);
                 }
@@ -124,7 +157,6 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
         if(objMap == null || objMap.size() == 0 ){
             throw new RuntimeException("not read data from mysql data");
         }
-
     }
 
     /**
@@ -184,9 +216,31 @@ public class TableProcessFunction extends ProcessFunction<JSONObject, JSONObject
     }
 
     /**
-     * 对 Data 中的数据过滤
+     * 对 Data 中的数据过滤, 获取需要的字段
      */
     private void filterColumn(JSONObject data, String sinkColumns) {
+        String[] columnSplit = sinkColumns.split(",");
+        //数组转换集合
+        List<String> column = Arrays.asList(columnSplit);
+
+        Set<Map.Entry<String, Object>> entries = data.entrySet();
+        Iterator<Map.Entry<String, Object>> iterator = entries.iterator();
+
+        for (;iterator.hasNext();) {
+
+            Map.Entry<String, Object> next = iterator.next();
+
+            // list 是否包含元素： Returns <tt>true</tt> if this list contains the specified element.
+            if(!column.contains(next.getKey())){
+
+//                data.remove(next.getKey());
+
+                // 具体实现？
+                iterator.remove();
+            }
+
+        }
+
 
     }
 

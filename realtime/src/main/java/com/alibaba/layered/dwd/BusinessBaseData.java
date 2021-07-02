@@ -54,7 +54,7 @@ public class BusinessBaseData {
         //fixme： 定义测输出流
         OutputTag<JSONObject> hbaseTag = new OutputTag<JSONObject>(TableProcess.SINK_TYEP_HBASE){};
 
-        //主流写入kafka (collect), java 中的 process 方法
+        //初步清洗后的数据，写入kafka (collect), 自定义 TableProcessFunction
         SingleOutputStreamOperator<JSONObject> processDS = filter_data.process(new TableProcessFunction(hbaseTag));
 
         //获取测输出流
@@ -69,13 +69,16 @@ public class BusinessBaseData {
                 new KafkaSerializationSchema<JSONObject>() {
                     @Override
                     public void open(SerializationSchema.InitializationContext context) throws Exception {
-
+                        System.out.println("kafka序列化");
                     }
 
                   //重写方法
                     @Override
                     public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long timestamp) {
-                        return null;
+                        String sinkTopic = element.getString("sink_table");
+                        JSONObject dataJsonObj = element.getJSONObject("data");
+                        //返回字段类型  String topic, V value
+                        return  new ProducerRecord<>(sinkTopic,dataJsonObj.toString().getBytes());  // V 类型： byte<>
                     }
                 }
         );

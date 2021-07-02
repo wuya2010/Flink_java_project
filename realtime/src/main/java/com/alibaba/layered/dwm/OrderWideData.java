@@ -23,6 +23,8 @@ import org.apache.flink.util.Collector;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>Description: 添加描述</p>
@@ -43,6 +45,7 @@ public class OrderWideData {
         String orderInfoSourceTopic = "dwd_order_info";
         String orderDetailSourceTopic = "dwd_order_detail";
         String orderWideSinkTopic = "dwm_order_wide";
+        // 消费者组的使用
         String groupId = "order_wide_group";
 
         FlinkKafkaConsumer<String> orderDetailSource = KafkaUtil.getKafkaSource(orderDetailSourceTopic, groupId);
@@ -54,7 +57,7 @@ public class OrderWideData {
         SingleOutputStreamOperator<OrderInfo> orderInfoParseData = orderInfoDs.map(
                 //数据类型
                 new RichMapFunction<String, OrderInfo>() {
-
+                    //定义变量
                     SimpleDateFormat sdf = null;
 
                     @Override
@@ -94,7 +97,7 @@ public class OrderWideData {
         );
 
 
-        //指定时间字段 参数： WatermarkStrategy
+        //指定时间字段 参数： WatermarkStrategy ==> java 过于繁琐
         SingleOutputStreamOperator<OrderInfo> orderInfoWithTs = orderInfoParseData.assignTimestampsAndWatermarks(
                 //指定泛型类
                 WatermarkStrategy.<OrderInfo>forBoundedOutOfOrderness(Duration.ofSeconds(3)).withTimestampAssigner(
@@ -108,7 +111,7 @@ public class OrderWideData {
         );
 
 
-        // 窗口的关闭时间
+        //订单明细指定事件时间字段
         SingleOutputStreamOperator<OrderDetail> orderDetailWitsTs = orderDetailParseData.assignTimestampsAndWatermarks(
                 WatermarkStrategy.<OrderDetail>forBoundedOutOfOrderness(Duration.ofSeconds(3)).withTimestampAssigner(
                         new SerializableTimestampAssigner<OrderDetail>() {
@@ -123,8 +126,10 @@ public class OrderWideData {
         KeyedStream<OrderInfo, Long> orderInfoKeyDs = orderInfoWithTs.keyBy(OrderInfo::getId);
         KeyedStream<OrderDetail, Long> orderDetailKeyDs = orderDetailWitsTs.keyBy(OrderDetail::getOrder_id);
 
-        //根据 id 进行关联
-        SingleOutputStreamOperator<OrderWide> orderWideDs = orderInfoKeyDs.intervalJoin(orderDetailKeyDs)
+        //根据 id 进行关联 流数据的关联完成
+        SingleOutputStreamOperator<OrderWide> orderWideDs = orderInfoKeyDs
+                // fixme: join 的方式
+                .intervalJoin(orderDetailKeyDs)
                 .between(Time.milliseconds(-5), Time.milliseconds(5))
                 .process(
                         new ProcessJoinFunction<OrderInfo, OrderDetail, OrderWide>() {
@@ -136,6 +141,8 @@ public class OrderWideData {
                         }
                 );
 
+        //********************************************************** 完成流数据的关联 ***********************************************************************
+
         //数据的关联：关联
         /*
             DataStream<IN> in,
@@ -144,25 +151,48 @@ public class OrderWideData {
             TimeUnit timeUnit,
             int capacity
          */
-//        AsyncDataStream.unorderedWait(
-//                orderWideDs,
-//                //关联的表名
-//                new DimAsyncFunction<OrderWide>("DIM_USER_INFO"){
-//
-//                    @Override
-//                    public String getKey(OrderWide obj) {
-////                        return obj.getUser_id()
-//                        return "";
-//                    }
-//
-//                    @Override
-//                    public void join(OrderWide obj, JSONObject dimInfoJson) throws Exception {
-////                        return null;
-//                    }
-//                }
-//        )
 
+        // Add an AsyncWaitOperator. The order of output stream records may be reordered
+        SingleOutputStreamOperator<OrderWide> orderWideWithUserDS = AsyncDataStream.unorderedWait(
+                orderWideDs,  //SingleOutputStreamOperator 是 DataStream 子类
+                //关联的表名
+                new DimAsyncFunction<OrderWide>("DIM_USER_INFO") {  // 从对应的 hbase 中取值
 
+                    // fixme: 内部实现方式
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        //long类型转换为 String
+                        return orderWide.getUser_id().toString();
+                    }
 
+                    @Override
+                    public void join(OrderWide orderObject, JSONObject dimInfoJson) throws Exception {
+
+                        String birthday = dimInfoJson.getString("BIRTHDAY");
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        Date birthDate = sdf.parse(birthday);
+                        long birthStamp = birthDate.getTime();
+                        long curStamp = System.currentTimeMillis();
+
+                        //获取年龄
+                        long ageStamp = curStamp - birthStamp;
+                        Long longAge = ageStamp / 1000L / 60L / 24L / 365L;
+                        //long 转 int
+                        int age = longAge.intValue();
+
+                        // 添加需要的字段信息
+                        orderObject.setUser_age(age);
+                        orderObject.setUser_gender(dimInfoJson.getString("GENDER"));
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        // 根据上一步的结果，继续关联其他维度表，关联获取需要的字段： 关联SPU商品维度+ 关联SKU维度
+
+        orderWideWithUserDS.print("get data");
+        //样例类转json
+        orderWideWithUserDS.map( obj -> JSONObject.toJSONString(obj)) //获取 String
+                .addSink(KafkaUtil.getKafkaSink(orderWideSinkTopic)); //MyKafkaUtil.getKafkaSink(orderWideSinkTopic)
+
+        env.execute();
     }
 }
